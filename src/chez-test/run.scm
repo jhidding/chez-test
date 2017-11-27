@@ -83,8 +83,7 @@
   #| Get all definitions from a program.
    |#
   (define (get-definitions program)
-    (filter (lambda (expr) (not (import-clause? expr)))
-            program))
+    (filter define-clause? program))
 
 
   #|  Running the tests
