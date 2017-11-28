@@ -1,5 +1,6 @@
-(import (rnrs base (6))
-        (rnrs io simple (6))
+#!/usr/bin/env scheme-script
+
+(import (rnrs (6))
 
         (srfi :48)
         (chez-test cut)
@@ -8,22 +9,25 @@
         (chez-test run)
         (chez-test generic))
 
-(define (partial f . args1)
-  (lambda args2
-    (apply f (append args1 args2))))
-
+#| Join paths
+ |#
 (define (path-join first . rest)
   (let ((sep (make-string 1 (directory-separator))))
     (if (null? rest)
       first
       (apply path-join (string-append first sep (car rest)) (cdr rest)))))
 
+#| Scan path recursively through folders matching dir? for files
+ | matching file?.
+ |#
 (define (recursive-directory-list file? dir? path)
   (let ((ls    (map (cut path-join path <>)
                     (directory-list path)))
         (recur (cut recursive-directory-list file? dir? <>)))
     (apply append (filter file? ls) (map recur (filter dir? ls)))))
 
+#| Find all tests in a path.
+ |#
 (define (find-tests path)
   (recursive-directory-list
     (lambda (f)
@@ -34,6 +38,8 @@
            (string-starts-with? "test" f)))
     path))
 
+#| Run all tests from a file
+ |#
 (define (run-test-file path)
   (let ((program (read-all (open-input-file path))))
     (format #t "Running ~a~%" path)
@@ -42,3 +48,5 @@
 (let* ((path  (cadr (command-line)))
        (files (find-tests path)))
   (for-each run-test-file files))
+
+; vim:ft=scheme
