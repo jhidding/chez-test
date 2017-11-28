@@ -6,30 +6,13 @@
   (import (rnrs (6))
           (rnrs eval (6))
 
-          (only (srfi :1 lists) unfold append-map)
+          (only (srfi :1 lists) append-map)
           (only (srfi :48) format)
 
           (match)
+
+          (chez-test generic)
           (chez-test contexts))
-
-  #|  Generic utility functions
-   | ====================================================================== |#
-
-  #| Identity function.
-   |#
-  (define (identity x) x)
-
-  #| Tests whether a string starts with a certain prefix.
-   |#
-  (define (string-starts-with? pre str)
-    (string=? (substring str 0 (string-length pre))
-              pre))
-
-  #| Read all expressions from a port.
-   |#
-  (define (read-all port)
-    (unfold port-eof? read identity port))
-
 
   #|  Parsing program structure
    | ====================================================================== |#
@@ -109,11 +92,11 @@
    |#
   (define (run-test env defs name)
     (call/cc
-      (lambda (cc)
+      (lambda (return)
         (with-exception-handler
           (lambda (x)
             (if (assertion-violation? x)
-              (cc x)
+              (return x)
               (raise x)))
           (lambda ()
             (eval `(letrec ,defs (,name) 'success) env))))))
