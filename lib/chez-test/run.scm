@@ -32,8 +32,9 @@
    |#
   (define (test-clause? expr)
     (and (define-clause? expr)
-         (string-starts-with?
-           "test" (symbol->string (get-definition-name expr)))))
+         (let ((name (symbol->string (get-definition-name expr))))
+           (and (< 4 (string-length name))
+                (string-starts-with? "test" name)))))
 
   #| Obtains all import clauses from a program.
    |#
@@ -68,6 +69,8 @@
   (define (get-definitions program)
     (filter define-clause? program))
 
+  (define (get-program-body program)
+    (filter (lambda (x) (not (import-clause? x))) program))
 
   #|  Running the tests
    | ====================================================================== |#
@@ -90,7 +93,7 @@
   #| Run a test, if it raises an assertion-violation this function
    | return the exception, otherwise return `success`.
    |#
-  (define (run-test env defs name)
+  (define (run-test env body name)
     (call/cc
       (lambda (return)
         (with-exception-handler
@@ -99,13 +102,13 @@
               (return x)
               (raise x)))
           (lambda ()
-            (eval `(letrec ,defs (,name) 'success) env))))))
+            (eval `(let () ,@body (,name) 'success) env))))))
 
   #| Run all tests in a program and produce a report
    |#
   (define (run-tests program)
     (let* ((env   (apply environment (get-imports program)))
-           (defs  (map define->letrec-clause (get-definitions program)))
+           (body  (get-program-body program))
            (tests (get-defined-tests program)))
       (fold-left
         (lambda (report test)
@@ -113,7 +116,7 @@
                   (string-append
                     (symbol->string test)
                     (make-string (- 25 (string-length (symbol->string test))) #\space)))
-          (let ((result (run-test env defs test)))
+          (let ((result (run-test env body test)))
             (if (assertion-violation? result)
               (format #t ":( \x1B;[31m~a\x1B;[m~%" (condition-message result))
               (format #t ":) \x1B;[32msuccess\x1B;[m~%"))
