@@ -32,10 +32,11 @@
   (recursive-directory-list
     (lambda (f)
       (and (file-regular? f)
-           (string-ends-with? ".scm" f)))
-    (lambda (f)
-      (and (file-directory? f)
+           (string-ends-with? ".scm" f)
            (string-starts-with? "test" f)))
+    (lambda (f)
+      (and (file-directory? f)))
+           ; (not (string-starts-with? "." f))))
     path))
 
 #| Run all tests from a file
