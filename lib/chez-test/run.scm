@@ -47,7 +47,7 @@
     (match expr
       ((define (,name . ,args) ,body ...)
        name)
-      ((define ,name (lambda ,args ,body ...))
+      ((define ,name ,rest ...)
        name)))
 
   #| Transform a function definition to a valid `letrec` clause.
