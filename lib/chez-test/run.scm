@@ -47,8 +47,9 @@
     (match expr
       ((define (,name . ,args) ,body ...)
        name)
-      ((define ,name (lambda ,args ,body ...))
-       name)))
+      ((define ,name ,rest ...)
+       name)
+      (,default #f)))
 
   #| Transform a function definition to a valid `letrec` clause.
    |#
@@ -118,7 +119,9 @@
                     (make-string (- 25 (string-length (symbol->string test))) #\space)))
           (let ((result (run-test env body test)))
             (if (assertion-violation? result)
-              (format #t ":( \x1B;[31m~a\x1B;[m~%" (condition-message result))
+              (format #t ":( \x1B;[31m~a\x1B;[m~%"
+                (apply format #f (condition-message result)
+                        (condition-irritants result)))
               (format #t ":) \x1B;[32msuccess\x1B;[m~%"))
             (report-add-result report result)))
         (make-report 0 0 '())
