@@ -1,5 +1,5 @@
 (library (chez-test suite)
-  (export define-test-suite define-test-case test-case
+  (export define-test-suite define-test-case test-case run-suite
           test-predicate test-eqv test-exn test-no-exn test-equal)
 
   (import (rnrs (6))
@@ -7,7 +7,8 @@
 
           (monads)
           (monads maybe)
-          
+
+          (chez-test reports)
           (chez-test test))
 
   #| Assertions ============================================================ |#
@@ -60,7 +61,7 @@
 
   #| Syntax ================================================================ |#
   (define-record-type suite
-    (fields (mutable register) description))
+    (fields name (mutable register) description))
 
   (define (suite-list s)
     (map car (suite-register s)))
@@ -75,24 +76,42 @@
       s
       (cons (cons t f) (suite-register s))))
 
+  (define (run-suite s)
+    (format #t "Running test-suite ~s~%" (suite-name s))
+    (fold-left
+      (lambda (report test)
+        (format #t "~a ... "
+                (string-append
+                  (symbol->string test)
+                  (make-string (- 25 (string-length (symbol->string test))) #\space)))
+        (let ((result (run-test (suite-get-test s test))))
+          (if (assertion-violation? result)
+            (format #t ":( \x1B;[31m~a\x1B;[m~%"
+              (apply format #f (condition-message result)
+                      (condition-irritants result)))
+            (format #t ":) \x1B;[32msuccess\x1B;[m~%"))
+          (report-add-result report result)))
+      (make-report 0 0 '())
+      (suite-list s)))
+
   (define-syntax define-test-suite
     (lambda (x)
       (syntax-case x ()
         ((define-test-suite <name> <description>)
          #'(define <name>
-             (make-suite '() <description>))))))
+             (make-suite '<name> '() <description>))))))
 
   (define-syntax define-test-case
     (lambda (x)
       (syntax-case x ()
         ((define-test-case <suite> <name> (<fixtures> ...) <body> ...)
-         #'(suite-add-test <suite> '<name>
+         #'(suite-add-test! <suite> '<name>
                            (make-test '<name>
                                       (lambda (<fixtures> ...) <body> ...)
                                       '(<fixtures> ...))))
-                                      
+
         ((define-test-case <suite> <name> <body>)
-         #'(suite-add-test <suite> '<name>
+         #'(suite-add-test! <suite> '<name>
                            (make-test '<name>
                                       (lambda () <body>) '()))))))
 
@@ -100,11 +119,11 @@
     (lambda (x)
       (syntax-case x ()
         ((test-case <name> (<fixtures> ...) <body> ...)
-         #'(run-test (make-test '<name>
-                                (lambda (<fixtures> ...) <body> ...)
-                                '(<fixtures> ...))))
-                                      
+         #'(apply-test (make-test '<name>
+                                  (lambda (<fixtures> ...) <body> ...)
+                                  '(<fixtures> ...))))
+
         ((test-case <name> <body>)
-         #'(run-test (make-test '<name>
-                                (lambda () <body>) '()))))))
+         #'(apply-test (make-test '<name>
+                                  (lambda () <body>) '()))))))
 )
