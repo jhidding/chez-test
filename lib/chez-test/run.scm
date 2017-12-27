@@ -48,12 +48,8 @@
       ((define (,name . ,args) ,body ...)
        name)
       ((define ,name ,rest ...)
-<<<<<<< HEAD
        name)
       (,default #f)))
-=======
-       name)))
->>>>>>> 40748d86833052bf424f56fa28e71406ce7c8375
 
   #| Transform a function definition to a valid `letrec` clause.
    |#
