@@ -13,7 +13,7 @@
 (define (not-a-test)
   '(dont run me!))
 
-(define (test-fails)
+(define (test-fail)
   (assert (= 0 1)))
 
 (define (test-uses-not-a-test)

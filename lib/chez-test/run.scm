@@ -1,7 +1,6 @@
 (library (chez-test run)
 
-  (export read-all run-test run-tests
-          report? with-report print-report)
+  (export file->suites)
 
   (import (rnrs (6))
           (rnrs eval (6))
@@ -11,8 +10,13 @@
 
           (match)
 
-          (chez-test generic)
-          (chez-test contexts))
+          (chez-test tests)
+          (chez-test suite)
+          (chez-test reports)
+
+          (chez-test private generic)
+          (chez-test private contexts)
+          (chez-test private generic))
 
   #|  Parsing program structure
    | ====================================================================== |#
@@ -51,6 +55,14 @@
        name)
       (,default #f)))
 
+  (define (get-definition-args expr)
+    (match expr
+      ((define (,name . ,args) ,body ...)
+       args)
+      ((define ,name (lambda ,args ,body ...))
+       args)
+      (,default '())))
+
   #| Transform a function definition to a valid `letrec` clause.
    |#
   (define (define->letrec-clause expr)
@@ -63,7 +75,10 @@
   #| Extract all named test definitions from a program.
    |#
   (define (get-defined-tests program)
-    (map get-definition-name (filter test-clause? program)))
+    (map (lambda (x)
+           (cons (get-definition-name x)
+                 (get-definition-args x)))
+         (filter test-clause? program)))
 
   #| Get all definitions from a program.
    |#
@@ -73,57 +88,43 @@
   (define (get-program-body program)
     (filter (lambda (x) (not (import-clause? x))) program))
 
-  #|  Running the tests
-   | ====================================================================== |#
+  (define (library? program)
+    (eq? (caar program) 'library))
 
-  (define-context report
-    (fields n-successes n-failures failures))
+  (define (library-spec program)
+    (match (car program)
+      ((library ,spec (export ,exports ...) ,body ...)
+       spec)))
 
-  (define (report-add-result report result)
-    (with-report report
-      (if (assertion-violation? result)
-        (make-report
-          n-successes (+ 1 n-failures) (cons result failures))
-        (make-report
-          (+ 1 n-successes) n-failures failures))))
+  (define (library-exports program)
+    (match (car program)
+      ((library ,spec (export ,exports ...) ,body ...)
+       exports)))
 
-  (define (print-report report)
-    (with-report report
-      (format #t "~a successes, ~a failures~%" n-successes n-failures)))
+  (define (library->suites program)
+    (eval 
+      `(filter suite? (list ,@(library-exports program)))
+      (environment '(rnrs (6))
+                   '(chez-test suite)
+                   (library-spec program))))
 
-  #| Run a test, if it raises an assertion-violation this function
-   | return the exception, otherwise return `success`.
-   |#
-  (define (run-test env body name)
-    (call/cc
-      (lambda (return)
-        (with-exception-handler
-          (lambda (x)
-            (if (assertion-violation? x)
-              (return x)
-              (raise x)))
-          (lambda ()
-            (eval `(let () ,@body (,name) 'success) env))))))
+  (define (file->suites path)
+    (let* ((program (read-all (open-input-file path))))
+      (cond
+        ((library? program) (library->suites program))
+        (else (list (monkey-program->suite path program))))))
 
-  #| Run all tests in a program and produce a report
-   |#
-  (define (run-tests program)
-    (let* ((env   (apply environment (get-imports program)))
-           (body  (get-program-body program))
-           (tests (get-defined-tests program)))
-      (fold-left
-        (lambda (report test)
-          (format #t "~a ... "
-                  (string-append
-                    (symbol->string test)
-                    (make-string (- 25 (string-length (symbol->string test))) #\space)))
-          (let ((result (run-test env body test)))
-            (if (assertion-violation? result)
-              (format #t ":( \x1B;[31m~a\x1B;[m~%"
-                (apply format #f (condition-message result)
-                        (condition-irritants result)))
-              (format #t ":) \x1B;[32msuccess\x1B;[m~%"))
-            (report-add-result report result)))
-        (make-report 0 0 '())
-        tests)))
+  (define (monkey-program->suite path program)
+    (let* ((env     (apply environment (get-imports program)))
+           (body    (get-program-body program))
+           (tests   (get-defined-tests program)))
+      (make-suite
+        path
+        (map (lambda (test)
+               (cons (car test)
+                     (make-test (car test)
+                                (eval `(let () ,@body ,(car test)) env)
+                                (cdr test))))
+             tests)
+        "")))
 )

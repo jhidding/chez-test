@@ -3,11 +3,13 @@
 (import (rnrs (6))
 
         (srfi :48)
-        (chez-test cut)
+        (chez-test private cut)
 
         (only (chezscheme) file-regular? file-directory? directory-list directory-separator)
         (chez-test run)
-        (chez-test generic))
+        (chez-test suite)
+        (chez-test reports)
+        (chez-test private generic))
 
 #| Join paths
  |#
@@ -42,9 +44,11 @@
 #| Run all tests from a file
  |#
 (define (run-test-file path)
-  (let ((program (read-all (open-input-file path))))
-    (format #t "Running ~a~%" path)
-    (print-report (run-tests program))))
+  (for-each
+    (lambda (s)
+      (print-report (run-suite s))
+      (newline))
+    (file->suites path)))
 
 (let* ((path  (cadr (command-line)))
        (files (find-tests path)))

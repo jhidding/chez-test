@@ -3,7 +3,8 @@
           report-add-result print-report)
   (import (rnrs (6))
           (srfi :48)
-          (chez-test contexts))
+          (chez-test private contexts)
+          (chez-test tests))
 
   #| Reporting ============================================================= |#
   (define-context report
@@ -11,7 +12,7 @@
 
   (define (report-add-result report result)
     (with-report report
-      (if (assertion-violation? result)
+      (if (failed? result)
         (make-report
           n-successes (+ 1 n-failures) (cons result failures))
         (make-report
