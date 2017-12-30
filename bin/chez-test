@@ -5,7 +5,10 @@
         (srfi :48)
         (chez-test private cut)
 
-        (only (chezscheme) file-regular? file-directory? directory-list directory-separator)
+        (only (chezscheme)
+              file-regular? file-directory? directory-list
+              directory-separator)
+
         (chez-test run)
         (chez-test suite)
         (chez-test reports)
@@ -41,17 +44,19 @@
            ; (not (string-starts-with? "." f))))
     path))
 
-#| Run all tests from a file
- |#
-(define (run-test-file path)
-  (for-each
-    (lambda (s)
-      (print-report (run-suite s))
-      (newline))
-    (file->suites path)))
-
-(let* ((path  (cadr (command-line)))
-       (files (find-tests path)))
-  (for-each run-test-file files))
+(let* ((path   (cadr (command-line)))
+       (files  (find-tests path))
+       (suites (apply append (map file->suites files))))
+  (format #t "Found ~a test suites.~%" (length suites))
+  (let* ((reports  (map (lambda (s)
+                          (let ((r (run-suite s)))
+                            (newline)
+                            r)) suites))
+         (n-failed (apply + (map report-n-failures reports)))
+         (n-passed (apply + (map report-n-successes reports))))
+    (format #t "~a passed, ~a failed~%" n-passed n-failed)
+    (if (zero? n-failed)
+      (exit 0)
+      (exit 1))))
 
 ; vim:ft=scheme
