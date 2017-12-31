@@ -4,101 +4,17 @@
   (import (rnrs (6))
           (srfi :48)
 
-          (monads)
-          (monads maybe)
-          (monads record-contexts)
-          (monads parser)
-          (monads receive)
+          (monads failure)
 
           (chez-test reports)
           (chez-test tests)
+          (chez-test private parsing)
           (chez-test private cut)
           (chez-test private colours))
 
-  (define-record-context text-cursor
-    (fields text start end))
-
-  (define (text-cursor-end? tc)
-    (with-text-cursor tc
-      (= end (string-length text))))
-
-  (define (string->text-cursor text)
-    (make-text-cursor text 0 0))
-
-  (define (text-cursor-ref tc)
-    (with-text-cursor tc
-      (string-ref text end)))
-
-  (define (text-cursor-select tc)
-    (with-text-cursor tc
-      (substring text start end)))
-
-  (define (text-cursor-next tc)
-    (with-text-cursor tc
-      (make-text-cursor text start (+ 1 end))))
-
-  (define (text-cursor-flush tc)
-    (with-text-cursor tc
-      (make-text-cursor text end end)))
-
-  (define (p:return value)
-    (lambda (tc tgt)
-      (values value tc tgt)))
-
-  (define (p:>>= p f)
-    (lambda (tc tgt)
-      (receive (value td tgu) (p tc tgt)
-        (if (failure? value)
-          (values value td tgu)
-          ((f value) td tgu)))))
-
-  (define-record-type end)
-  (define *end* (make-end))
-
-  (define (p:split-on pred)
-    (lambda (tc tgt)
-      (cond
-        ((text-cursor-end? tc)
-         (values *end* tc (cons (text-cursor-select tc) tgt)))
-
-        ((pred (text-cursor-ref tc))
-         (values (text-cursor-ref tc)
-                 (text-cursor-flush (text-cursor-next tc))
-                 (cons (text-cursor-select tc) tgt)))
-
-        (else
-         (values (text-cursor-ref tc)
-                 (text-cursor-next tc)
-                 tgt)))))
-
-  (define (p:pop tc tgt)
-    (values (reverse tgt) tc '()))
-
-  (define (p:repeat p)
-    (seq-p (v <- p)
-           (if (end? v)
-             p:pop
-             (p:repeat p))))
-
-  (define (p:choice p . ps)
-    (define (p:choice* p1 p2)
-      (lambda (tc tgt)
-        (receive (v td tgu) (p1 tc tgt)
-          (if (failure? v)
-            (p2 tc tgt)
-            (values v td tgu)))))
-
-    (fold-left p:choice* p ps))
-
-  (define-monad p p:>>= p:return)
-
-  (define (p:parse p str)
-    (receive (value _1 _2) (p (string->text-cursor str) '())
-      value))
-
   (define (string-tokenize str c)
     (p:parse
-      (p:repeat (p:split-on (cut char=? #\newline <>)))
+      (p:loop (p:split-on (cut char=? #\newline <>)))
       str))
 
   (define (string-join lst sep)
