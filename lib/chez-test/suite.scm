@@ -182,7 +182,7 @@
          #'(suite-add-test! <suite> '<name>
                            (make-test '<name>
                                       (lambda () <body>) '())))
-         
+
         ((define-test-case <suite> <name> (<fixtures> ...) <body> ...)
          #'(suite-add-test! <suite> '<name>
                            (make-test '<name>
