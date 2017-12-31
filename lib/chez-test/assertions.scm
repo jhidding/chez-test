@@ -16,7 +16,7 @@
               (apply string-append
                 "assertion violation in `~s` with arguments:~%"
                 (map (lambda (arg)
-                       (format #f "  • ~s: ~~s~%" arg)) '(<formals> ...))))
+                       (format #f "  ‣ ~s: ~~s~%" arg)) '(<formals> ...))))
 
              (unless (begin <body> ...)
                (raise (assertion-violation
@@ -56,7 +56,7 @@
                           (apply string-append
                             "assertion violation in `~s` with arguments:~%"
                             (map (lambda (arg)
-                              (format #f "  • ~a: ~~s~%" arg)) '#,<formal-syms>)))
+                              (format #f "  ‣ ~a: ~~s~%" arg)) '#,<formal-syms>)))
 
                         (unless passing?
                           (raise (assertion-violation
