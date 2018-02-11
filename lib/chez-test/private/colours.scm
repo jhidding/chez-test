@@ -1,5 +1,6 @@
 (library (chez-test private colours)
-  (export set-colour-green set-colour-red set-colour-blue reset-colour)
+  (export set-colour-green set-colour-red set-colour-blue set-colour-dark-red
+          reset-colour)
   (import (rnrs (6))
           (srfi :48))
 
@@ -11,6 +12,9 @@
 
   (define (set-colour-red)
     (set-colour-rgb 255 60 100))
+
+  (define (set-colour-dark-red)
+    (set-colour-rgb 150 40 60))
 
   (define (set-colour-blue)
     (set-colour-rgb 100 100 200))
