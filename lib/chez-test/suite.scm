@@ -59,7 +59,8 @@
 
   (define (run-suite s)
     (format #t "Running test suite ~s~%" (suite-name s))
-    (format #t "~a═══════════════════════════════════════════════════════════════~a~%" (set-colour-blue) (reset-colour))
+    (format #t "~a═══════════════════════════════════════════════════════════════~a~%"
+            (set-colour-blue) (reset-colour))
     (fold-left
       (lambda (report test)
         (format #t "~a ... "
