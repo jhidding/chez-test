@@ -2,7 +2,7 @@
 
   (export assert-eq assert-eqv assert-equal assert-not
           assert-predicate assert-compare
-          assert-raises assert-no-raise)
+          assert-raises assert-no-raise assert-all)
 
   (import (rnrs (6))
           (srfi :48))
@@ -23,7 +23,7 @@
                         '<name>
                         (exception-description)
                         '<name> <formals> ...))))))))
-  
+
   (define-assertion (assert-eq a b)
     (eq? a b))
 
@@ -41,6 +41,12 @@
 
   (define-assertion (assert-compare comp? a b)
     (comp? a b))
+
+  (define (all f x)
+    (not (find (lambda (x) (not (f x))) x)))
+
+  (define-assertion (assert-all predicate? lst)
+    (all predicate? lst))
 
   (define-syntax define-assertion-syntax
     (lambda (x)
@@ -72,7 +78,7 @@
           (lambda (y) (return (<predicate> y)))
           (lambda () <expression> #f)))))
 
-  (define-assertion-syntax (assert-no-raise <expression>) 
+  (define-assertion-syntax (assert-no-raise <expression>)
     (call/cc
       (lambda (return)
         (with-exception-handler
